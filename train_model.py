@@ -44,7 +44,7 @@ class NoamOpt:
 
 
 
-def fit(model, opt, train_dataloader, val_dataloader, epochs, src_vocab):
+def fit(model, baseline_model, opt, train_dataloader, val_dataloader, epochs, src_vocab):
     """
     This method performs the training and validation of the model over multiple epochs.
     Inspired by "A detailed guide to Pytorch's nn.Transformer() module," by Daniel Melchor.
@@ -74,7 +74,7 @@ def fit(model, opt, train_dataloader, val_dataloader, epochs, src_vocab):
         train_loss_list += [train_loss]
         
         # Perform one epoch of validation and get the validation loss
-        validation_loss, baseline_loss, total_val_acc, total_baseline_acc  = validation_loop(model, val_dataloader, src_vocab)
+        validation_loss, baseline_loss, total_val_acc, total_baseline_acc  = validation_loop(model, baseline_model, val_dataloader, src_vocab)
         
         # Append this epoch's validation loss to the list
         validation_loss_list += [validation_loss]
@@ -117,11 +117,11 @@ def train_loop(model, opt, dataloader, src_vocab):
         
         # Move all tensors in the current batch to the specified device (CPU or GPU).
         for k in X.keys():
-            if k != 'user_week':
+            if k != 'user':
                 X[k] = X[k].to(device)
         
         # Extract feature names (keys that are not the target 'y').
-        features = [k for k in X.keys() if k != 'y' and k != 'user_week']
+        features = [k for k in X.keys() if k != 'y' and k != 'user']
 
         # Create masked tokens and random masks for the target sequence.
         masked_tokens, random_mask = torch_mask_tokens(X['y'], src_vocab)
@@ -175,7 +175,7 @@ def train_loop(model, opt, dataloader, src_vocab):
     return total_loss / len(dataloader), total_train_acc
 
 
-def validation_loop(model, dataloader, src_vocab):
+def validation_loop(model,baseline_model, dataloader, src_vocab):
     """
     This method performs one epoch of validation on the model.
     It was inspired by "A detailed guide to Pytorch's nn.Transformer() module.",
@@ -199,10 +199,10 @@ def validation_loop(model, dataloader, src_vocab):
             
             # Move all tensors to the same device as the model.
             for k in X.keys():
-                if k != 'user_week':
+                if k != 'user':
                     X[k] = X[k].to(device)
             # Extract all features from the batch (every key in the dictionary that is not 'y').
-            features = [k for k in X.keys() if k != 'y' and k != 'user_week']
+            features = [k for k in X.keys() if k != 'y' and k != 'user']
 
             # Create masked tokens and random mask.
             masked_tokens, random_mask = torch_mask_tokens(X['y'], src_vocab)
@@ -223,10 +223,7 @@ def validation_loop(model, dataloader, src_vocab):
             y_predicted = model(y_input, src_mask) # masked_tokens if without FusionEmbeddings
 
             # Get the baseline predictions
-            dict_return = val_dataset.get_highest_rank_pos_dict()
-            highest_rank_pos = [dict_return[i] for i in X['user_week']]
-            highest_rank_labels = val_dataset.encode_positions(highest_rank_pos)
-            baseline_pred = baseline_model(masked_tokens, y_expected, highest_rank_labels, src_vocab)
+            baseline_pred = baseline_model.predict(masked_tokens, y_expected, X['user'])
 
             # Calculate the loss value.
             val_loss = masked_loss(y_predicted, y_expected, random_mask)

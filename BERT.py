@@ -171,11 +171,11 @@ class BERT_model(nn.Module):
     A standard Encoder-Decoder architecture. Base for this and many 
     other models.
     """
-    def __init__(self, encoder, src_embed, d_model,vocab):
+    def __init__(self, encoder, src_embed, d_model,ntokens):
         super(BERT_model, self).__init__()
         self.encoder = encoder
         self.src_embed = src_embed
-        self.proj = nn.Linear(d_model, vocab)
+        self.proj = nn.Linear(d_model, ntokens)
         
     def forward(self, src, src_mask):
         "Take in and process masked src and target sequences."

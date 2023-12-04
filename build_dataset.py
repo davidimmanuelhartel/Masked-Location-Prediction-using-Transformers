@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import torch
 import pandas as pd
+import numpy as np
 import ast
 from collections import Counter
 
@@ -65,10 +66,10 @@ class BertMobilityDataset(Dataset):
     def decode_positions(self, indices):
         return [self.vocab[i] for i in indices]
     
-    # Function find the top rank position for each user_week
+    # Function find the top rank position for each user
     def get_highest_rank_pos_dict(self):
-        highest_rank_positions = self.df.loc[self.df.groupby('user_week')['rank'].idxmin()]
-        highest_rank_pos_dict = dict(zip(highest_rank_positions['user_week'], highest_rank_positions['pos']))
+        highest_rank_positions = self.df.loc[self.df.groupby('user')['rank'].idxmin()]
+        highest_rank_pos_dict = dict(zip(highest_rank_positions['user'], highest_rank_positions['pos']))
         return highest_rank_pos_dict
 
     # Return the total number of user_weeks
@@ -112,7 +113,7 @@ class BertMobilityDataset(Dataset):
             'y': torch.tensor(input_ids, dtype=torch.long),
             #'date_time': timestamp_tensors,
             'rank': rank_tensors,
-            'user_week': user_week   
+            'user': user   
         }
         return dict_return
 
@@ -184,14 +185,11 @@ def create_user_week(row):
     return f"u{user_str}_w{week_str}"
 
 
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
 
-def stratified_user_week_split(df, train_ratio=0.70, val_ratio=0.15, test_ratio=0.15, ensure_user_in_all_sets=True):
+def stratified_user_week_split(df, train_ratio=0.70, val_ratio=0.15, test_ratio=0.15, ensure_user_in_all_sets=True,random_seed=None):
     """
     Splits the DataFrame into train, validation, and test sets such that each 'user_week' group is kept intact,
-    and 'user' is as evenly distributed as possible across the sets. Optionally ensures each user is present in all sets.
+    and 'user' is as evenly distributed as possible across the sets. Optionally ensures each user is represented in all sets.
 
     Parameters:
     df (DataFrame): The DataFrame to split.
@@ -204,6 +202,14 @@ def stratified_user_week_split(df, train_ratio=0.70, val_ratio=0.15, test_ratio=
     DataFrame, DataFrame, DataFrame: Train, validation, and test DataFrames.
     """
 
+    # Check if the ratios sum to 1
+    if train_ratio + val_ratio + test_ratio != 1:
+        raise ValueError("The sum of train_ratio, val_ratio, and test_ratio must be 1.")
+
+    # Set a random seed for reproducibility if provided
+    if random_seed is not None:
+        np.random.seed(random_seed)
+
     # Group data by 'user_week'
     grouped = df.groupby('user_week')
     user_week_indices = {user_week: group.index.tolist() for user_week, group in grouped}
@@ -214,10 +220,15 @@ def stratified_user_week_split(df, train_ratio=0.70, val_ratio=0.15, test_ratio=
     for user in df['user'].unique():
         user_data = df[df['user'] == user]
         user_weeks = user_data['user_week'].unique()
+
+        # Discard users with less than 3 'user_weeks'
+        if len(user_weeks) < 3:
+            continue
+
         np.random.shuffle(user_weeks)
 
         # Ensure each user is in all sets if required
-        if ensure_user_in_all_sets and len(user_weeks) >= 3:
+        if ensure_user_in_all_sets:
             train_indices.extend(user_week_indices[user_weeks[0]])
             val_indices.extend(user_week_indices[user_weeks[1]])
             test_indices.extend(user_week_indices[user_weeks[2]])
@@ -242,3 +253,4 @@ def stratified_user_week_split(df, train_ratio=0.70, val_ratio=0.15, test_ratio=
     test_df = df.loc[test_indices].reset_index(drop=True)
 
     return train_df, val_df, test_df
+
