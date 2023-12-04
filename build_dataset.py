@@ -11,21 +11,26 @@ from collections import Counter
 class BertMobilityDataset(Dataset):
     def __init__(self, df, rank_dict, vocab= None):
         # assuming df has the columns 'user, 'user_week', 'date', 'pos'
+        
+        # prepare data frame for further processing
         self.df = df  
         self.df['date'] = pd.to_datetime(self.df['date']).dt.date  
         self.df["user"] = self.df["user"].astype(int).astype(str)
-        self.df['rank'] = self.df.apply(lambda row: rank_dict.get(row['user_week'], {}).get(row['pos'], 0), axis=1)
+        
+        # assign ranks based on rank_dict
+        self.df['rank'] = self.df.apply(lambda row: rank_dict.get(row['user'], {}).get(row['pos'], 0), axis=1) 
+        
+        # init variables
         self.users = df['user'].unique()
         self.user_weeks = df['user_week'].unique()  
-        
         self.vocab = vocab if vocab is not None else self.build_vocab()  
         self.vocab_size = len(self.vocab)
         self.max_sequence_length = self.calculate_max_sequence_length()
-        # self.highest_rank_pos_dict = self.get_highest_rank_pos_dict()
+        
         # Convert string lists to actual lists if needed
         if isinstance(self.df['pos'].iloc[0], str):
-            self.df['pos'] = self.df['pos'].apply(ast.literal_eval)  
-
+            self.df['pos'] = self.df['pos'].apply(ast.literal_eval) 
+        
     def build_vocab(self):
         # Add special tokens and user tokens
         special_tokens = ['[PAD]', '[CLS]', '[SEP]', '[MASK]']
@@ -131,7 +136,8 @@ def compute_rank_dict(df):
     # Create a dictionary to store the ranks
     rank_dict = {}
     for user, group in visit_counts.groupby('user'):
-        rank_dict[user] = dict(zip(group['pos'], group['rank']))
+        user_no = str(int(float(user)))
+        rank_dict[user_no] = dict(zip(group['pos'], group['rank']))
 
     return rank_dict
 
@@ -251,6 +257,6 @@ def stratified_user_week_split(df, train_ratio=0.70, val_ratio=0.15, test_ratio=
     train_df = df.loc[train_indices].reset_index(drop=True)
     val_df = df.loc[val_indices].reset_index(drop=True)
     test_df = df.loc[test_indices].reset_index(drop=True)
-
+    
     return train_df, val_df, test_df
 
