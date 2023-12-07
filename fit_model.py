@@ -43,52 +43,55 @@ class NoamOpt:
             
 
 
-
-def fit(model, baseline_model, opt, train_dataloader, val_dataloader, epochs, src_vocab):
+def fit(model, opt, train_dataloader, val_dataloader, epochs, src_vocab, baseline_model=None):
     """
     This method performs the training and validation of the model over multiple epochs.
+    If a baseline model is provided, it will also be validated for comparison.
     Inspired by "A detailed guide to Pytorch's nn.Transformer() module," by Daniel Melchor.
     https://towardsdatascience.com/a-detailed-guide-to-pytorchs-nn-transformer-module-c80afbc9ffb1
     """
-    
+
     # Lists to store training and validation loss for each epoch
-    train_loss_list= []
+    train_loss_list = []
     train_accuracy_list = []
     validation_loss_list = []
-    baseline_loss_list = []
     val_accuracy_list = []
+
+    # Lists for baseline model, if provided
+    baseline_loss_list = []
     val_baseline_accuracy_list = []
-    
-    
+
     # Start training and validation
     print("Training and validating model")
     for epoch in range(epochs):
-        
-        # Print the epoch number for better logging
         print("-" * 25, f"Epoch {epoch + 1}", "-" * 25)
-        
-        # Perform one epoch of training and get the training loss
+
+        # Perform one epoch of training and get the training loss and accuracy
         train_loss, total_train_acc = train_loop(model, opt, train_dataloader, src_vocab)
-        
-        # Append this epoch's training loss to the list
-        train_loss_list += [train_loss]
-        
-        # Perform one epoch of validation and get the validation loss
-        validation_loss, baseline_loss, total_val_acc, total_baseline_acc  = validation_loop(model, baseline_model, val_dataloader, src_vocab)
-        
-        # Append this epoch's validation loss to the list
-        validation_loss_list += [validation_loss]
-        baseline_loss_list += [baseline_loss]
-        val_accuracy_list += [total_val_acc]
-        val_baseline_accuracy_list += [total_baseline_acc]
-        train_accuracy_list += [total_train_acc]
-        
-        print(f"Training loss: {train_loss:.4f}")
-        print(f"Validation loss: {validation_loss:.4f}")
-        print(f"Baseline loss: {baseline_loss:.4f}")
+        train_loss_list.append(train_loss)
+        train_accuracy_list.append(total_train_acc)
+
+        # Perform one epoch of validation and get the validation loss and accuracy
+        validation_loss, total_val_acc = validation_loop(model, val_dataloader, src_vocab)
+        validation_loss_list.append(validation_loss)
+        val_accuracy_list.append(total_val_acc)
+
+        print(f"Training loss: {train_loss:.4f}, Training Accuracy: {total_train_acc:.4f}")
+        print(f"Validation loss: {validation_loss:.4f}, Validation Accuracy: {total_val_acc:.4f}")
+
+        # Validate the baseline model if provided
+        if baseline_model is not None:
+            baseline_loss, total_baseline_acc = baseline_validation_loop(baseline_model, val_dataloader, src_vocab)
+            baseline_loss_list.append(baseline_loss)
+            val_baseline_accuracy_list.append(total_baseline_acc)
+
+            print(f"Baseline Validation loss: {baseline_loss:.4f}, Baseline Validation Accuracy: {total_baseline_acc:.4f}")
+
         print()
-        
-    return train_loss_list, validation_loss_list, baseline_loss_list, train_accuracy_list, val_accuracy_list, val_baseline_accuracy_list
+
+    return (train_loss_list, train_accuracy_list, validation_loss_list, val_accuracy_list,
+            baseline_loss_list if baseline_model else None, val_baseline_accuracy_list if baseline_model else None)
+
 
 
 def train_loop(model, opt, dataloader, src_vocab):
@@ -137,9 +140,9 @@ def train_loop(model, opt, dataloader, src_vocab):
         # Create a mask to ignore padding in the sequence.
         src_mask = ((X['y'] != 0).int()).to(device)
         src_mask = src_mask.unsqueeze(-1)
-        
+     
         # Get model predictions.
-        y_predicted = model(y_input, src_mask) # y_input if using with FusionEmbeddings. otherwise masked_masked tokens
+        y_predicted = model(masked_tokens, src_mask) # y_input if using with FusionEmbeddings. otherwise masked_tokens
 
         # Calculate loss using masked tokens.
         loss = masked_loss(y_predicted, y_expected, random_mask)
@@ -168,14 +171,13 @@ def train_loop(model, opt, dataloader, src_vocab):
          
     
     total_train_acc = sum(accuracy_list) / len(accuracy_list)
-    print('Accuracy train:', total_train_acc.item())
 
     
     # Return the average loss for this epoch.
     return total_loss / len(dataloader), total_train_acc
 
 
-def validation_loop(model,baseline_model, dataloader, src_vocab):
+def validation_loop(model, dataloader, src_vocab):
     """
     This method performs one epoch of validation on the model.
     It was inspired by "A detailed guide to Pytorch's nn.Transformer() module.",
@@ -186,9 +188,9 @@ def validation_loop(model,baseline_model, dataloader, src_vocab):
     model.eval()
     
     # Initialize variables to keep track of total loss and number of batches.
-    total_val_loss, total_baseline_loss = 0,0 
-    accuracy_list, baseline_accuracy_list = [], []
-    total_val_acc, total_baseline_acc = 0,0
+    total_val_loss = 0
+    accuracy_list = []
+    total_val_acc = 0
     nn = 0
     
     # Use torch.no_grad() to deactivate the autograd engine and reduce memory usage and speed up computations.
@@ -220,18 +222,13 @@ def validation_loop(model,baseline_model, dataloader, src_vocab):
             src_mask = src_mask.unsqueeze(-1)
 
             # Get the model's predictions.
-            y_predicted = model(y_input, src_mask) # masked_tokens if without FusionEmbeddings
-
-            # Get the baseline predictions
-            baseline_pred = baseline_model.predict(masked_tokens, y_expected, X['user'])
+            y_predicted = model(masked_tokens, src_mask) # masked_tokens if without FusionEmbeddings, otherwise y_input
 
             # Calculate the loss value.
             val_loss = masked_loss(y_predicted, y_expected, random_mask)
-            baseline_loss = masked_loss(baseline_pred, y_expected, random_mask)
             
             # Add the batch's loss to the total loss for this epoch.
             total_val_loss += val_loss.detach().item()
-            total_baseline_loss += baseline_loss.detach().item()
             
             # Increase the batch counter.
             nn += 1
@@ -242,20 +239,73 @@ def validation_loop(model,baseline_model, dataloader, src_vocab):
             mdl = predicted_labels[random_mask]
             acc = sum(true == mdl) / true.size()[0] if true.size()[0] > 0 else 0
             accuracy_list.append(acc)
+    
+    # Calculate and print the average accuracy for this epoch.
+    total_val_acc = sum(accuracy_list) / len(accuracy_list)
+    
+    # Return the average loss over all batches.
+    return total_val_loss / len(dataloader), total_val_acc
+
+
+
+def baseline_validation_loop(baseline_model, dataloader, src_vocab):
+    """
+    This method performs one epoch of validation on the baseline model.
+    """
+    
+    # Initialize variables to keep track of total loss and number of batches.
+    total_baseline_loss = 0
+    baseline_accuracy_list = []
+    total_baseline_acc = 0
+    nn = 0
+    
+    # Use torch.no_grad() to deactivate the autograd engine and reduce memory usage and speed up computations.
+    with torch.no_grad():
+        # Iterate over each batch from the DataLoader.
+        for X in dataloader:
             
+            # Move all tensors to the same device as the model.
+            for k in X.keys():
+                if k != 'user':
+                    X[k] = X[k].to(device)
+                    
+            # Extract all features from the batch (every key in the dictionary that is not 'y').
+            features = [k for k in X.keys() if k != 'y' and k != 'user']
+
+            # Create masked tokens and random mask.
+            masked_tokens, random_mask = torch_mask_tokens(X['y'], src_vocab)
+
+            # Apply the random mask to all the features.
+            for k in features:
+                X[k][random_mask] = 0 
+
+            # Prepare the input for the model. It includes masked tokens and features.
+            y_expected = X['y']
+
+            # Get the baseline predictions
+            baseline_pred = baseline_model.predict(masked_tokens, y_expected, X['user'])
+
+            # Calculate the loss value.
+            baseline_loss = masked_loss(baseline_pred, y_expected, random_mask)
+            
+            # Add the batch's loss to the total loss for this epoch.
+            total_baseline_loss += baseline_loss
+            
+            # Increase the batch counter.
+            nn += 1
+        
             # Calculate the accuracy for the baseline model.
+            true = y_expected[random_mask]
             baseline_predicted_labels = torch.argmax(baseline_pred, dim=-1)
             baseline_mdl = baseline_predicted_labels[random_mask]
             baseline_acc = sum(true == baseline_mdl) / true.size()[0]
             baseline_accuracy_list.append(baseline_acc)
     
     # Calculate and print the average accuracy for this epoch.
-    total_val_acc = sum(accuracy_list) / len(accuracy_list)
     total_baseline_acc = sum(baseline_accuracy_list) / len(baseline_accuracy_list)
-    print('Accuracy val:', total_val_acc.item())
     
     # Return the average loss over all batches.
-    return total_val_loss / len(dataloader), total_baseline_loss / len(dataloader), total_val_acc, total_baseline_acc
+    return  total_baseline_loss / len(dataloader), total_baseline_acc
 
 
 def masked_loss(y_predicted, 

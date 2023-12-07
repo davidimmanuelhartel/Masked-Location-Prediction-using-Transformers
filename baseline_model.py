@@ -5,9 +5,7 @@ class BaselineModel:
         """
         Initialize the BaselineModel class with tokens, highest rank position labels, and the size of the embedding space.
         
-        :param tokens: Tensor containing tokens.
-        :param highest_rank_pos_labels: The indices of the labels in the embedding space.
-        :param ntokens: The size of the embedding space.
+        :param dataset: The dataset to use for the model.
         """
         self.highest_rank_dict = dataset.get_highest_rank_pos_dict()
         self.dataset = dataset
@@ -34,8 +32,6 @@ class BaselineModel:
         highest_rank_pos = [self.highest_rank_dict[i] for i in user_weeks]
         highest_rank_pos_labels = self.dataset.encode_positions(highest_rank_pos)
         
-
-
         # Fill in the masked positions with the label probabilities
         for i in range(batch_size):
             # Create a one-hot encoded representation of the highest rank position label for each sequence

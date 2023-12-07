@@ -14,7 +14,7 @@ class BertMobilityDataset(Dataset):
         
         # prepare data frame for further processing
         self.df = df  
-        self.df['date'] = pd.to_datetime(self.df['date']).dt.date  
+        self.df['date'] = pd.to_datetime(self.df['date'])  
         self.df["user"] = self.df["user"].astype(int).astype(str)
         
         # assign ranks based on rank_dict
