@@ -1,2 +1,2 @@
-# mobility-transformer
-Code that implements the model described in my master thesis.
+# mobility-transformer - Prelimnary version
+Implementation of the model described in my master thesis. 
