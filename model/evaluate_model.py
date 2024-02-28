@@ -1,3 +1,17 @@
+"""
+Utility Functions for Model Data Serialization and Deserialization
+
+This script contains utility functions for converting MOBERT training and testing data to a serializable format, saving it to files, 
+loading it from files, and managing file paths.
+
+Functions:
+- tensor_to_list: Converts a PyTorch Tensor to a list.
+- convert_to_serializable: Recursively converts Tensors in a data structure to lists.
+- save_model_data: Saves model parameters, training measures, and configuration to files with unique names.
+- save_test_results: Saves test results, including measures and configuration, to files with unique names.
+- load_model_data: Loads model parameters, training measures, configuration, and dataset info from files.
+"""
+
 import json
 import torch
 from datetime import datetime

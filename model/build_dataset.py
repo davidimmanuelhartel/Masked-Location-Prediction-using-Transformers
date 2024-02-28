@@ -10,13 +10,14 @@ from collections import Counter
 # contains functions connected to the creation of the dataset
 
 class BertMobilityDataset(Dataset):
-    def __init__(self, df, rank_dict, vocab= None):
+    def __init__(self, df, rank_dict, vocab= None, user_embedding = False):
         # assuming df has the columns 'user, 'user_week', 'date', 'pos'
         
         # prepare data frame for further processing
         self.df = df  
         self.df['date'] = pd.to_datetime(self.df['date'])  
         self.df["user"] = self.df["user"].astype(int).astype(str)
+        self.user_embedding = user_embedding
         
         # assign ranks based on rank_dict
         self.df['rank'] = self.df.apply(lambda row: rank_dict.get(row['user'], {}).get(row['pos'], 0), axis=1) 
@@ -35,11 +36,15 @@ class BertMobilityDataset(Dataset):
     def build_vocab(self):
         # Add special tokens and user tokens
         special_tokens = ['[PAD]', '[CLS]', '[SEP]', '[MASK]']
-        # user_tokens = ['[U_' + ''.join(filter(str.isdigit, str(user))) + ']' for user in self.users] ####
+        if self.user_embedding:
+            user_tokens = ['[U_' + ''.join(filter(str.isdigit, str(user))) + ']' for user in self.users]
         # Build vocab from positions
         counter = Counter([str(pos) for pos in self.df['pos'].tolist()])
         vocab = sorted(counter, key=counter.get, reverse=True)
-        return special_tokens + vocab # special_tokens + user_tokens + vocab   # special_tokens  + vocab
+        if self.user_embedding:
+            return special_tokens + user_tokens + vocab
+        else:
+            return special_tokens + vocab
 
     
     # Function to calculate frequency of the vocabulary words
@@ -118,6 +123,16 @@ class BertMobilityDataset(Dataset):
                 user_transition_probs[user] = transitions
 
             return user_transition_probs
+    
+    def calculate_periodic_feature(self, value, max_value):
+        if value == 0:  # Padding value
+            return 0, 0
+        # Scale the value to a 0 to 2π interval
+        x = (value / max_value) * 2 * math.pi
+        time_x = 0.5 * (math.sin(x) + 1)
+        time_y = 0.5 * (math.cos(x) + 1)
+        return time_x, time_y
+
 
     # Return the total number of user_weeks
     def __len__(self):  
@@ -130,10 +145,12 @@ class BertMobilityDataset(Dataset):
         user_data = self.df[self.df['user_week'] == user_week].sort_values(by=['date'])
         # Get the user part from user_week and remove the 'u' prefix 
         user = str(int(user_week.split('_')[0].lstrip('u')))  # Remove 'u' prefix and get the user part # int(user_week.split('_')[0].lstrip('u')) if without usertoken
-        # user_token = '[U_' + user + ']' ####
-        input_ids = [self.vocab.index('[CLS]')]# [self.vocab.index(user_token)]  # Start with the user-specific token instead of CLS token  [self.vocab.index('[CLS]')]
+        if self.user_embedding: 
+            user_token = '[U_' + user + ']'
+            input_ids = [self.vocab.index(user_token)]  # Start with the user-specific token instead of CLS token
+        else:
+            input_ids = [self.vocab.index('[CLS]')] # Start with the CLS token
         ranks = [0] # [0] for the CLS/user-specific token
-        timestamps = [0]  # [0] for the CLS/user-specific token
         day_of_week = [0]  # list to store day of week
         hour_of_day = [0]  # list to store time of the day
 
@@ -146,25 +163,38 @@ class BertMobilityDataset(Dataset):
             ranks.append(row['rank'])
             day_of_week.append(row['date'].weekday()+1) # Monday is 1 and Sunday is 7
             hour_of_day.append(row['date'].hour +1 ) # 1-24
+            
+        
 
         padding_length = self.max_sequence_length - len(input_ids)
         input_ids += [self.vocab.index('[PAD]')] * padding_length
-        timestamps += [0] * padding_length
         ranks += [0] * padding_length
         day_of_week += [0] * padding_length
         hour_of_day += [0] * padding_length
+        
+        # Calculate periodic time features independently
+        time_xs_day, time_ys_day = zip(*[self.calculate_periodic_feature(day, 7) for day in day_of_week])  # For day of the week
+        time_xs_hour, time_ys_hour = zip(*[self.calculate_periodic_feature(hour, 24) for hour in hour_of_day])  # For time of the day
 
-        # Convert dates to a tensor 
+        # Convert features to tensors
         rank_tensors = torch.tensor(ranks, dtype=torch.long)
         day_of_week_tensors = torch.tensor(day_of_week, dtype=torch.long)
         hour_of_day_tensors = torch.tensor(hour_of_day, dtype=torch.long)
+        time_x_day_tensors = torch.tensor(time_xs_day, dtype=torch.float)
+        time_y_day_tensors = torch.tensor(time_ys_day, dtype=torch.float)
+        time_x_hour_tensors = torch.tensor(time_xs_hour, dtype=torch.float)
+        time_y_hour_tensors = torch.tensor(time_ys_hour, dtype=torch.float)
 
         dict_return = {
             'y': torch.tensor(input_ids, dtype=torch.long),
             'rank': rank_tensors,
             'user': user,
             # 'day_of_week': day_of_week_tensors,
-            # 'time_of_the_day': hour_of_day_tensors
+            # 'time_of_the_day': hour_of_day_tensors,
+            # 'time_x_day': time_x_day_tensors,
+            # 'time_y_day': time_y_day_tensors,
+            # 'time_x_hour': time_x_hour_tensors,
+            # 'time_y_hour': time_y_hour_tensors,
         }
         return dict_return
 
@@ -194,7 +224,7 @@ def torch_mask_tokens(inputs, n_tokens, seed=0):
         80% MASK, 10% random, 10% original.
     """
     inputs = torch.clone(inputs)
-    torch.manual_seed(seed)
+    # torch.manual_seed(seed)
     
     # Identify non-padding tokens - exclude 0, 1, 2
     non_padding_indices = (inputs != 0) & (inputs != 1) & (inputs != 2)

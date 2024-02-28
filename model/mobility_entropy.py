@@ -1,3 +1,16 @@
+"""
+Entropy Calculation Functions
+
+This script contains functions for calculating various entropy measures based on location data.
+These functions include:
+- calculate_random_entropy: Calculate Random Entropy for each user in the DataFrame.
+- calculate_temporal_uncorrelated_entropy: Calculate Temporal-Uncorrelated Entropy for each user in the DataFrame.
+- calculate_actual_entropy_simplified: Calculate a simplified version of Actual Entropy for each user in the DataFrame.
+- calculate_actual_entropy_advanced: Calculate the Actual Entropy as defined in the paper for each user in the DataFrame.
+- calculate_lempel_ziv_entropy: Calculate the Lempel-Ziv entropy for each user in the DataFrame.
+- calculate_predictability: Calculate the predictability based on the number of locations (N) and entropy (S_i).
+"""
+
 from itertools import combinations
 import pandas as pd
 import numpy as np

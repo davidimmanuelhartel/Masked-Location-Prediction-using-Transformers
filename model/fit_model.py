@@ -1,3 +1,22 @@
+"""
+Utility Functions and Model Training Loop for MOBERT
+
+This script contains utility functions and a training loop for MOBERT. It includes functions for handling model optimization, data loading, training, and validation.
+
+Functions:
+- tensor_to_list: Converts a PyTorch Tensor to a list.
+- convert_to_serializable: Recursively converts Tensors in a data structure to lists.
+- save_model_data: Saves model parameters, training measures, and configuration to files with unique names.
+- save_test_results: Saves test results, including measures and configuration, to files with unique names.
+- load_model_data: Loads model parameters, training measures, configuration, and dataset info from files.
+- NoamOpt: Implementation of the "Noam" learning rate scheduler, commonly used with Transformer models.
+- fit: Performs the training and validation of the model over multiple epochs.
+- train_loop: Performs one epoch of training on the model.
+- validation_loop: Performs one epoch of validation on the model.
+- baseline_validation_loop: Performs one epoch of validation on the baseline model.
+- masked_loss: Calculates the masked loss for the model.
+"""
+
 import pandas as pd
 import numpy as np
 import torch

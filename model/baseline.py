@@ -1,3 +1,21 @@
+"""
+Baseline Models for Location Prediction
+
+These classes define baseline models for predicting location labels based on different strategies. Each model takes a token sequence, a mask indicating positions to predict, and user identifiers, and outputs predicted labels for the masked positions.
+
+1. Baseline Model 1 - Rank 1 Position:
+    - This model predicts labels by filling masked positions with the highest rank position for each user.
+
+2. Baseline Model 2 - Sampled Locations:
+    - Predicts labels by sampling locations based on precalculated location probabilities for each user.
+
+3. Baseline Model 3 - Markov Model (Order 1):
+    - Implements a Markov model approach where predictions depend on the previous location visited by the user.
+
+Author: David Hartel
+Date: February 2024
+"""
+
 import torch
 import random
 

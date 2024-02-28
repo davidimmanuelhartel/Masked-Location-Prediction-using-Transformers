@@ -1,3 +1,18 @@
+"""
+Synthetic Data Generation 
+
+This script contains functions to generate synthetic data for masked location prediction.
+The generated data mimics various patterns of user behavior, including alternating locations, 
+a constant sequence of locations, weekly location cycles, random distinct locations, and constant distinct locations.
+
+Functions:
+- alternating_loc_constant: Generates synthetic data with users alternating between two constant locations.
+- ten_sequence_loc_constant: Generates synthetic data with users cycling through a sequence of ten constant locations.
+- weekly_location_cycle: Generates synthetic data with users cycling through seven locations based on the day of the week.
+- random_loc_distinct: Generates synthetic data with users alternating between two random distinct locations.
+- constant_loc_distinct: Generates synthetic data with users consistently visiting unique locations.
+"""
+
 import pandas as pd
 from datetime import datetime, timedelta
 import random
