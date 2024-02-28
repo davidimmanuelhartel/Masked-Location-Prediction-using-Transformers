@@ -1,4 +1,4 @@
-# Masked Locarion Prediction using Transformers
+# Masked Location Prediction using Transformers
 Implementation of the model described in my master thesis. 
 
 ![cover map](figures/raw_data_world_map_cut.png)
