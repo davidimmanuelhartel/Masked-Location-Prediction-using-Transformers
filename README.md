@@ -1,5 +1,5 @@
 # Masked Location Prediction using Transformers
-Implementation of the model described in my master thesis. 
+Implementation of the MOBERT described in this master thesis. 
 
 ![cover map](figures/raw_data_world_map_cut.png)
 
