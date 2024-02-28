@@ -1,0 +1,1 @@
+{"variant": "bert_rank_time", "avg_test_loss": 3.675688519255485, "accuracy_top1": 0.35869047865405707, "accuracy_top5": 0.6291414026447033, "accuracy_top10": 0.7217681021459761}

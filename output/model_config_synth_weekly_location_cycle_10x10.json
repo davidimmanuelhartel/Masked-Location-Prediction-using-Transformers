@@ -1,0 +1,1 @@
+{"ntokens": 204, "epochs": 50, "d_model": 40, "d_hid": 40, "nlayers": 1, "nhead": 4, "dropout": 0, "lr": 0.001, "device": "cpu"}
