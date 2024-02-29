@@ -11,7 +11,11 @@ Part of the master thesis as partial fulfilment for the degree Master of Science
 ├── data-preprocessing-notebooks       <- Notebooks used for data preprocessing (section 4.2) visualisation 
 ├── figures                            <- All figures used in the thesis
 ├── model
-│   ├── notebooks                      <- Intermediate data that has been transformed.
+│   ├── notebooks                      <- All scripts used for training and testing the model.
+│   │   ├── entropy_plots.ipynb        <- Scripts used for plotting the entropy and predictability distribution (chapter 3).
+│   │   ├── plot_test_results.ipynb    <- Scripts used for plotting test result figures (chapter 8)
+│   │   ├── run_model.ipynb            <- Scripts used for training the model (chapter 7)
+│   │   ├── test_model.ipynb           <- Scripts used for testing the model (chapter 8)
 │   ├── saved_models                   <- All trained models (chapter 7 & 8)
 │   ├── BERT.py                        <- All classes and functions to implement the BERT adaption MOBERT. 
 │   ├── baseline.py                    <- The implementation of the baseline models (chapter 7 & 8)
@@ -32,6 +36,11 @@ Part of the master thesis as partial fulfilment for the degree Master of Science
 ------------
 
     pip install -r requirements.txt
+
+### Running the model
+------------
+
+The file `fit_model.py` contains functions and the model training loop 
 
 ### Thesis Abstract
 ------------
