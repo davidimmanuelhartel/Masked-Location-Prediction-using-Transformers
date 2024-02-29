@@ -40,7 +40,7 @@ Part of the master thesis as partial fulfilment for the degree Master of Science
 ### Running the model
 ------------
 
-The file `fit_model.py` contains functions and the model training loop. 
+Use `fit_model.py` to set parameters and train the model. 
 
 ### Thesis Abstract
 ------------
