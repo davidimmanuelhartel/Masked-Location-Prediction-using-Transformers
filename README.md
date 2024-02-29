@@ -4,28 +4,28 @@ Implementation of MOBERT - a BERT adaptation for human mobility modelling.
 ![cover map](figures/raw_data_world_map_cut.png)
 
 
-```
+The directory structure of this repo:
 
+```
 ├── data-preprocessing-notebooks       <- Notebooks used for data preprocessing (section 4.2) visualisation 
 ├── figures                            <- All figures used in the thesis
 ├── model
 │   ├── notebooks                      <- Intermediate data that has been transformed.
 │   ├── saved_models                   <- All trained models (chapter 7 & 8)
+│   ├── BERT.py                        <- All classes and functions to implement the BERT adaption MOBERT. 
 │   ├── baseline.py                    <- The implementation of the baseline models (chapter 7 & 8)
 │   ├── build_dataset.py               <- Class that extends torch.utils.data.Dataset class, contains functions connected to the creation of the dataset
-│   ├── BERT.py                        <- All trained models (chapter 7 & 8)
+│   ├── build_synthetic_data_frames.py <- Utilitiy funcitons for creating synthetic data sets
+│   ├── evaluate_model.py              <- Utility Functions for Model Data Serialization and Deserialization
+│   ├── fit_model.py                   <- Utility Functions and Model Training Loop for MOBERT
+│   ├── mobility_entropy.py            <- Entropy Calculation Functions 
+│   ├── test_model.py                  <- Test Loop Functions
+├── output                             <- All training and test run results
+├── README.md                          <- Main Readme file
+├── requirements.txt                   <- All packages installed in the virtual environment
+├── thesis_david_hartel_s212588.txt    <- Thesis compiled as PDF
 
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-                       generated with `pip freeze > requirements.txt`
 ```
-
-
-
 
 Abstract
 
