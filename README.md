@@ -1,6 +1,6 @@
 # Masked Location Prediction using Transformers
 Implementation of MOBERT - a BERT adaptation for human mobility modelling.
-
+Part of the master thesis as partial fulfilment for the degree Master of Science in Engineering at DTU.
 ![cover map](figures/raw_data_world_map_cut.png)
 
 
