@@ -32,7 +32,7 @@ Part of the master thesis as partial fulfilment for the degree Master of Science
 
 ```
 
-### Installing development requirements
+### Installing requirements
 ------------
 
     pip install -r requirements.txt
