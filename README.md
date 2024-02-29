@@ -21,7 +21,7 @@ The directory structure of this repo:
 │   ├── mobility_entropy.py            <- Entropy Calculation Functions 
 │   ├── test_model.py                  <- Test Loop Functions
 ├── output                             <- All training and test run results
-├── README.md                          <- Main Readme file
+├── README.md                          <- This README file
 ├── requirements.txt                   <- All packages installed in the virtual environment
 ├── thesis_david_hartel_s212588.txt    <- Thesis compiled as PDF
 
